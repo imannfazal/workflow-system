@@ -31,3 +31,27 @@ def add_user():
     db.session.commit()
 
     return jsonify(user.to_dict()), 201
+
+@api.route("/api/users/<int:user_id>", methods=["PUT"])
+def update_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.get_json()
+    user.name = data.get("name", user.name)   # keep old value if not provided
+    user.email = data.get("email", user.email)
+    
+    db.session.commit()
+    return jsonify(user.to_dict()), 200
+
+
+@api.route("/api/users/<int:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"message": "User deleted"}), 200

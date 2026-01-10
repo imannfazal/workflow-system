@@ -4,7 +4,7 @@ from database import db
 from routes import api
 
 app = Flask(__name__)
-CORS(app)   # 👈 THIS LINE FIXES FRONTEND ACCESS
+CORS(app)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///workflow.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
