@@ -87,3 +87,13 @@ def update_workflow(workflow_id):
 
     db.session.commit()
     return jsonify(workflow.to_dict()), 200
+
+@api.route("/api/workflows/<int:workflow_id>", methods=["DELETE"])
+def delete_workflow(workflow_id):
+    workflow = Workflow.query.get(workflow_id)
+    if not workflow:
+        return jsonify({"error": "Workflow not found"}), 404
+
+    db.session.delete(workflow)
+    db.session.commit()
+    return jsonify({"message": "Workflow deleted"}), 200
