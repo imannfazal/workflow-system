@@ -11,3 +11,17 @@ class User(db.Model):
             "name": self.name,
             "email": self.email
         }
+
+class Workflow(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(50), default="pending")
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "status": self.status,
+            "user_id": self.user_id
+        }
