@@ -55,3 +55,8 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "User deleted"}), 200
+
+@api.route("/api/users/<int:user_id>/workflows", methods=["GET"])
+def get_user_workflows(user_id):
+    workflows = Workflow.query.filter_by(user_id=user_id).all()
+    return jsonify([w.to_dict() for w in workflows]), 200
