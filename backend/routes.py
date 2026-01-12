@@ -75,3 +75,15 @@ def add_workflow(user_id):
 
     return jsonify(workflow.to_dict()), 201
 
+@api.route("/api/workflows/<int:workflow_id>", methods=["PUT"])
+def update_workflow(workflow_id):
+    workflow = Workflow.query.get(workflow_id)
+    if not workflow:
+        return jsonify({"error": "Workflow not found"}), 404
+
+    data = request.get_json()
+    workflow.title = data.get("title", workflow.title)
+    workflow.status = data.get("status", workflow.status)
+
+    db.session.commit()
+    return jsonify(workflow.to_dict()), 200
