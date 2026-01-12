@@ -60,3 +60,18 @@ def delete_user(user_id):
 def get_user_workflows(user_id):
     workflows = Workflow.query.filter_by(user_id=user_id).all()
     return jsonify([w.to_dict() for w in workflows]), 200
+
+@api.route("/api/users/<int:user_id>/workflows", methods=["POST"])
+def add_workflow(user_id):
+    data = request.get_json()
+    title = data.get("title")
+
+    if not title:
+        return jsonify({"error": "Title required"}), 400
+
+    workflow = Workflow(title=title, user_id=user_id)
+    db.session.add(workflow)
+    db.session.commit()
+
+    return jsonify(workflow.to_dict()), 201
+
