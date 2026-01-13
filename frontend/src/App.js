@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import UserList from "./components/UserList";
+import WorkflowList from "./components/WorkflowList";
 
 function App() {
   const [status, setStatus] = useState("Loading...");
@@ -7,22 +9,39 @@ function App() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  // Fetch users from backend
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [workflows, setWorkflows] = useState([]);
+  const [workflowTitle, setWorkflowTitle] = useState("");
+
+  // Fetch users
   const fetchUsers = () => {
     fetch("http://127.0.0.1:5000/api/users")
       .then(res => res.json())
       .then(data => setUsers(data))
-      .catch(err => console.error("Error fetching users:", err));
+      .catch(err => console.error(err));
   };
 
-  useEffect(() => {
-    fetch("http://127.0.0.1:5000/api/health")
+  // Fetch workflows for selected user
+  const fetchWorkflows = (userId) => {
+    fetch(`http://127.0.0.1:5000/api/users/${userId}/workflows`)
       .then(res => res.json())
-      .then(data => setStatus(data.status))
-      .catch(err => setStatus("Backend not reachable"));
+      .then(data => setWorkflows(data));
+  };
 
-    fetchUsers();
-  }, []);
+  // Add workflow
+  const addWorkflow = () => {
+    if (!workflowTitle) return;
+    fetch(`http://127.0.0.1:5000/api/users/${selectedUser}/workflows`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: workflowTitle }),
+    })
+      .then(res => res.json())
+      .then(() => {
+        setWorkflowTitle("");
+        fetchWorkflows(selectedUser);
+      });
+  };
 
   // Add user
   const handleSubmit = (e) => {
@@ -41,7 +60,7 @@ function App() {
           fetchUsers();
         }
       })
-      .catch(err => setMessage("Something went wrong"));
+      .catch(() => setMessage("Something went wrong"));
   };
 
   // Update user
@@ -56,25 +75,47 @@ function App() {
       .then(res => res.json())
       .then(data => {
         if (data.error) setMessage(data.error);
-        else {
-          setMessage("User updated!");
-          fetchUsers();
-        }
+        else fetchUsers();
       });
   };
 
   // Delete user
   const handleDelete = (userId) => {
     if (!window.confirm("Are you sure?")) return;
-    fetch(`http://127.0.0.1:5000/api/users/${userId}`, {
-      method: "DELETE",
+    fetch(`http://127.0.0.1:5000/api/users/${userId}`, { method: "DELETE" })
+      .then(res => res.json())
+      .then(() => fetchUsers());
+  };
+
+  // Update workflow
+  const handleUpdateWorkflow = (workflowId, updates) => {
+    fetch(`http://127.0.0.1:5000/api/workflows/${workflowId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
     })
       .then(res => res.json())
-      .then(data => {
-        setMessage(data.message);
-        fetchUsers();
-      });
+      .then(() => fetchWorkflows(selectedUser));
   };
+
+  // Delete workflow
+  const handleDeleteWorkflow = (workflowId) => {
+    if (!window.confirm("Delete this workflow?")) return;
+    fetch(`http://127.0.0.1:5000/api/workflows/${workflowId}`, {
+      method: "DELETE",
+    })
+      .then(() => fetchWorkflows(selectedUser));
+  };
+
+  // Health check & initial fetch
+  useEffect(() => {
+    fetch("http://127.0.0.1:5000/api/health")
+      .then(res => res.json())
+      .then(data => setStatus(data.status))
+      .catch(() => setStatus("Backend not reachable"));
+
+    fetchUsers();
+  }, []);
 
   return (
     <div style={{ padding: "40px", fontFamily: "Arial" }}>
@@ -83,27 +124,38 @@ function App() {
 
       <h2>Add User</h2>
       <form onSubmit={handleSubmit}>
-        <input type="text" placeholder="Name" value={name} onChange={e => setName(e.target.value)} required /><br /><br />
-        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required /><br /><br />
+        <input type="text" placeholder="Name" value={name} onChange={e => setName(e.target.value)} required />
+        <br /><br />
+        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+        <br /><br />
         <button type="submit">Add User</button>
       </form>
 
       {message && <p>{message}</p>}
 
-      <h2>Users</h2>
-      {users.length === 0 ? (
-        <p>No users found.</p>
-      ) : (
-        <ul>
-          {users.map(user => (
-            <li key={user.id}>
-              {user.name} ({user.email}){" "}
-              <button onClick={() => handleUpdate(user.id)}>Update</button>{" "}
-              <button onClick={() => handleDelete(user.id)}>Delete</button>
-            </li>
-          ))}
-        </ul>
+      {/* User List Component */}
+      <UserList
+        users={users}
+        onSelectUser={(id) => {
+          setSelectedUser(id);
+          fetchWorkflows(id);
+        }}
+        onUpdateUser={handleUpdate}
+        onDeleteUser={handleDelete}
+      />
+
+      {/* Workflow List Component */}
+      {selectedUser && (
+        <WorkflowList
+          workflows={workflows}
+          workflowTitle={workflowTitle}
+          setWorkflowTitle={setWorkflowTitle}
+          addWorkflow={addWorkflow}
+          onUpdateWorkflow={handleUpdateWorkflow}
+          onDeleteWorkflow={handleDeleteWorkflow}
+        />
       )}
+
     </div>
   );
 }

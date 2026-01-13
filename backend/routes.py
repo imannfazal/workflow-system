@@ -1,12 +1,15 @@
 from flask import Blueprint, request, jsonify
 from database import db
-from models import User
+from models import User, Workflow
 
 api = Blueprint("api", __name__)
 
+# Health check
 @api.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "Backend is running!"})
+
+# ---------------- USERS ---------------- #
 
 @api.route("/api/users", methods=["GET"])
 def get_users():
@@ -22,8 +25,7 @@ def add_user():
     if not name or not email:
         return jsonify({"error": "Name and email are required"}), 400
 
-    existing = User.query.filter_by(email=email).first()
-    if existing:
+    if User.query.filter_by(email=email).first():
         return jsonify({"error": "User already exists"}), 400
 
     user = User(name=name, email=email)
@@ -39,12 +41,11 @@ def update_user(user_id):
         return jsonify({"error": "User not found"}), 404
 
     data = request.get_json()
-    user.name = data.get("name", user.name)   # keep old value if not provided
+    user.name = data.get("name", user.name)
     user.email = data.get("email", user.email)
-    
+
     db.session.commit()
     return jsonify(user.to_dict()), 200
-
 
 @api.route("/api/users/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
@@ -55,6 +56,9 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "User deleted"}), 200
+
+
+# ---------------- WORKFLOWS ---------------- #
 
 @api.route("/api/users/<int:user_id>/workflows", methods=["GET"])
 def get_user_workflows(user_id):
@@ -69,7 +73,7 @@ def add_workflow(user_id):
     if not title:
         return jsonify({"error": "Title required"}), 400
 
-    workflow = Workflow(title=title, user_id=user_id)
+    workflow = Workflow(title=title, status="Pending", user_id=user_id)
     db.session.add(workflow)
     db.session.commit()
 
