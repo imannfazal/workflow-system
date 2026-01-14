@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import UserList from "./components/UserList";
 import WorkflowList from "./components/WorkflowList";
 
+const [user, setUser] = useState(null);
+const [token, setToken] = useState(localStorage.getItem("token"));
+
+
 function App() {
   const [status, setStatus] = useState("Loading...");
   const [users, setUsers] = useState([]);
@@ -23,19 +27,28 @@ function App() {
 
   // Fetch workflows for selected user
   const fetchWorkflows = (userId) => {
-    fetch(`http://127.0.0.1:5000/api/users/${userId}/workflows`)
+    fetch(`http://127.0.0.1:5000/api/users/${userId}/workflows`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    })
       .then(res => res.json())
       .then(data => setWorkflows(data));
   };
+
 
   // Add workflow
   const addWorkflow = () => {
     if (!workflowTitle) return;
     fetch(`http://127.0.0.1:5000/api/users/${selectedUser}/workflows`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({ title: workflowTitle }),
     })
+
       .then(res => res.json())
       .then(() => {
         setWorkflowTitle("");
@@ -91,9 +104,13 @@ function App() {
   const handleUpdateWorkflow = (workflowId, updates) => {
     fetch(`http://127.0.0.1:5000/api/workflows/${workflowId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(updates),
     })
+
       .then(res => res.json())
       .then(() => fetchWorkflows(selectedUser));
   };
@@ -103,7 +120,11 @@ function App() {
     if (!window.confirm("Delete this workflow?")) return;
     fetch(`http://127.0.0.1:5000/api/workflows/${workflowId}`, {
       method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
     })
+
       .then(() => fetchWorkflows(selectedUser));
   };
 
