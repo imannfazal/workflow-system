@@ -1,21 +1,23 @@
 from flask import Blueprint, request, jsonify
+from flask_cors import CORS
 from database import db
 from models import User, Workflow
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 api = Blueprint("api", __name__)
+CORS(api)
 
 #AUTH routes
-@api.route("/api/register", methods=["POST"])
-def register():
+@api.route("/api/users", methods=["POST"])
+def add_user():
     data = request.get_json()
     name = data.get("name")
     email = data.get("email")
-    password = data.get("password")
+    password = data.get("password", "default123")  # fallback password
 
-    if not name or not email or not password:
-        return jsonify({"error": "All fields required"}), 400
+    if not name or not email:
+        return jsonify({"error": "Name and email are required"}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "User already exists"}), 400
@@ -26,7 +28,7 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    return jsonify({"message": "User registered successfully"}), 201
+    return jsonify(user.to_dict()), 201
 
 
 @api.route("/api/login", methods=["POST"])

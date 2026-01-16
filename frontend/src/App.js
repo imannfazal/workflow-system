@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import UserList from "./components/UserList";
 import WorkflowList from "./components/WorkflowList";
 
-const [user, setUser] = useState(null);
-const [token, setToken] = useState(localStorage.getItem("token"));
-
-
 function App() {
+
+  // ✅ Hooks MUST be inside the component
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+
   const [status, setStatus] = useState("Loading...");
   const [users, setUsers] = useState([]);
   const [name, setName] = useState("");
@@ -25,7 +26,7 @@ function App() {
       .catch(err => console.error(err));
   };
 
-  // Fetch workflows for selected user
+  // Fetch workflows for selected user (AUTH REQUIRED)
   const fetchWorkflows = (userId) => {
     fetch(`http://127.0.0.1:5000/api/users/${userId}/workflows`, {
       headers: {
@@ -35,7 +36,6 @@ function App() {
       .then(res => res.json())
       .then(data => setWorkflows(data));
   };
-
 
   // Add workflow
   const addWorkflow = () => {
@@ -48,7 +48,6 @@ function App() {
       },
       body: JSON.stringify({ title: workflowTitle }),
     })
-
       .then(res => res.json())
       .then(() => {
         setWorkflowTitle("");
@@ -76,30 +75,6 @@ function App() {
       .catch(() => setMessage("Something went wrong"));
   };
 
-  // Update user
-  const handleUpdate = (userId) => {
-    const newName = prompt("Enter new name:");
-    const newEmail = prompt("Enter new email:");
-    fetch(`http://127.0.0.1:5000/api/users/${userId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName, email: newEmail }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) setMessage(data.error);
-        else fetchUsers();
-      });
-  };
-
-  // Delete user
-  const handleDelete = (userId) => {
-    if (!window.confirm("Are you sure?")) return;
-    fetch(`http://127.0.0.1:5000/api/users/${userId}`, { method: "DELETE" })
-      .then(res => res.json())
-      .then(() => fetchUsers());
-  };
-
   // Update workflow
   const handleUpdateWorkflow = (workflowId, updates) => {
     fetch(`http://127.0.0.1:5000/api/workflows/${workflowId}`, {
@@ -110,7 +85,6 @@ function App() {
       },
       body: JSON.stringify(updates),
     })
-
       .then(res => res.json())
       .then(() => fetchWorkflows(selectedUser));
   };
@@ -124,7 +98,6 @@ function App() {
         "Authorization": `Bearer ${token}`
       }
     })
-
       .then(() => fetchWorkflows(selectedUser));
   };
 
@@ -154,18 +127,14 @@ function App() {
 
       {message && <p>{message}</p>}
 
-      {/* User List Component */}
       <UserList
         users={users}
         onSelectUser={(id) => {
           setSelectedUser(id);
           fetchWorkflows(id);
         }}
-        onUpdateUser={handleUpdate}
-        onDeleteUser={handleDelete}
       />
 
-      {/* Workflow List Component */}
       {selectedUser && (
         <WorkflowList
           workflows={workflows}
@@ -176,7 +145,6 @@ function App() {
           onDeleteWorkflow={handleDeleteWorkflow}
         />
       )}
-
     </div>
   );
 }
