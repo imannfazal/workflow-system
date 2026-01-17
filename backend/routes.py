@@ -8,16 +8,17 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 api = Blueprint("api", __name__)
 CORS(api)
 
-#AUTH routes
-@api.route("/api/users", methods=["POST"])
-def add_user():
+# ---------------- AUTH ---------------- #
+
+@api.route("/api/register", methods=["POST"])
+def register():
     data = request.get_json()
     name = data.get("name")
     email = data.get("email")
-    password = data.get("password", "default123")  # fallback password
+    password = data.get("password")
 
-    if not name or not email:
-        return jsonify({"error": "Name and email are required"}), 400
+    if not name or not email or not password:
+        return jsonify({"error": "All fields required"}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "User already exists"}), 400
@@ -28,7 +29,7 @@ def add_user():
     db.session.add(user)
     db.session.commit()
 
-    return jsonify(user.to_dict()), 201
+    return jsonify({"message": "User registered successfully"}), 201
 
 
 @api.route("/api/login", methods=["POST"])
@@ -45,10 +46,13 @@ def login():
     access_token = create_access_token(identity=user.id)
     return jsonify({"token": access_token, "user": user.to_dict()}), 200
 
-# Health check
+
+# ---------------- HEALTH ---------------- #
+
 @api.route("/api/health", methods=["GET"])
 def health():
     return jsonify({"status": "Backend is running!"})
+
 
 # ---------------- USERS ---------------- #
 
@@ -57,23 +61,28 @@ def get_users():
     users = User.query.all()
     return jsonify([user.to_dict() for user in users])
 
-@api.route("/api/users", methods=["POST"])
-def add_user():
-    data = request.get_json()
-    name = data.get("name")
-    email = data.get("email")
 
-    if not name or not email:
-        return jsonify({"error": "Name and email are required"}), 400
+# @api.route("/api/users", methods=["POST"])
+# def create_user():
+#     data = request.get_json()
+#     name = data.get("name")
+#     email = data.get("email")
+#     password = data.get("password", "default123")  # fallback
 
-    if User.query.filter_by(email=email).first():
-        return jsonify({"error": "User already exists"}), 400
+#     if not name or not email:
+#         return jsonify({"error": "Name and email are required"}), 400
 
-    user = User(name=name, email=email)
-    db.session.add(user)
-    db.session.commit()
+#     if User.query.filter_by(email=email).first():
+#         return jsonify({"error": "User already exists"}), 400
 
-    return jsonify(user.to_dict()), 201
+#     hashed_pw = generate_password_hash(password)
+#     user = User(name=name, email=email, password=hashed_pw)
+
+#     db.session.add(user)
+#     db.session.commit()
+
+#     return jsonify(user.to_dict()), 201
+
 
 @api.route("/api/users/<int:user_id>", methods=["PUT"])
 def update_user(user_id):
@@ -87,6 +96,7 @@ def update_user(user_id):
 
     db.session.commit()
     return jsonify(user.to_dict()), 200
+
 
 @api.route("/api/users/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
@@ -112,12 +122,12 @@ def get_user_workflows(user_id):
     workflows = Workflow.query.filter_by(user_id=user_id).all()
     return jsonify([w.to_dict() for w in workflows])
 
+
 @api.route("/api/users/<int:user_id>/workflows", methods=["POST"])
 @jwt_required()
 def add_workflow(user_id):
     current_user = get_jwt_identity()
 
-    # 🔒 Only allow if user is creating their own workflow
     if current_user != user_id:
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -132,6 +142,7 @@ def add_workflow(user_id):
     db.session.commit()
 
     return jsonify(workflow.to_dict()), 201
+
 
 @api.route("/api/workflows/<int:workflow_id>", methods=["PUT"])
 @jwt_required()
@@ -166,4 +177,3 @@ def delete_workflow(workflow_id):
     db.session.delete(workflow)
     db.session.commit()
     return jsonify({"message": "Workflow deleted"}), 200
-
